@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game Caro</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #74ebd5, #acb6e5);
+      }
+      #board {
+        display: grid;
+        grid-template-columns: repeat(30, 1fr);
+        width: 90vmin;
+        height: 90vmin;
+        border: 3px solid #000;
+        background-color: #fff;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      }
+      .cell {
+        border: 1px solid #ccc;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: calc(90vmin / 30 * 0.6);
+        cursor: pointer;
+        user-select: none;
+        background-color: #fdfdfd;
+      }
+      .cell.x {
+        color: #e74c3c;
+        font-weight: bold;
+      }
+      .cell.o {
+        color: #3498db;
+        font-weight: bold;
+      }
+      .cell.highlight {
+        background-color: #fff8b0 !important;
+      }
+      #restartBtn {
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 1rem;
+        border: none;
+        border-radius: 6px;
+        background-color: #2ecc71;
+        color: white;
+        cursor: pointer;
+        display: none;
+      }
+      #winMessage {
+        font-size: 3rem;
+        font-weight: bold;
+        color: #fff;
+        text-shadow: 2px 2px 10px #000;
+        margin-top: 20px;
+        display: none;
+        animation: pop 0.6s ease-out;
+      }
+      @keyframes pop {
+        0% {
+          transform: scale(0.5);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="board"></div>
+    <div id="winMessage"></div>
+    <button id="restartBtn" onclick="restartGame()">Restart Game</button>
+
+    <script>
+      const SIZE = 30;
+      const board = document.getElementById("board");
+      const winMessage = document.getElementById("winMessage");
+      const restartBtn = document.getElementById("restartBtn");
+      let cells = Array(SIZE)
+        .fill()
+        .map(() => Array(SIZE).fill(null));
+      let currentPlayer = "x";
+      let moveCount = 0;
+
+      function createBoard() {
+        board.innerHTML = "";
+        winMessage.style.display = "none";
+        for (let row = 0; row < SIZE; row++) {
+          for (let col = 0; col < SIZE; col++) {
+            const cell = document.createElement("div");
+            cell.classList.add("cell");
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            cell.addEventListener("click", handleClick);
+            board.appendChild(cell);
+          }
+        }
+      }
+
+      function handleClick(e) {
+        const row = parseInt(e.target.dataset.row);
+        const col = parseInt(e.target.dataset.col);
+        if (cells[row][col] !== null) return;
+
+        cells[row][col] = currentPlayer;
+        e.target.classList.add(currentPlayer);
+        e.target.textContent = currentPlayer.toUpperCase();
+        moveCount++;
+
+        const winCells = checkWin(row, col);
+        if (winCells) {
+          showWinMessage(`${currentPlayer.toUpperCase()} WINS!`);
+          winCells.forEach(([r, c]) => {
+            const cell = document.querySelector(
+              `.cell[data-row='${r}'][data-col='${c}']`
+            );
+            if (cell) cell.classList.add("highlight");
+          });
+          endGame();
+        } else if (moveCount === SIZE * SIZE) {
+          showWinMessage("DRAW!");
+          endGame();
+        } else {
+          currentPlayer = currentPlayer === "x" ? "o" : "x";
+        }
+      }
+
+      function showWinMessage(msg) {
+        winMessage.textContent = msg;
+        winMessage.style.display = "block";
+      }
+
+      function endGame() {
+        Array.from(document.querySelectorAll(".cell")).forEach((cell) =>
+          cell.removeEventListener("click", handleClick)
+        );
+        restartBtn.style.display = "block";
+      }
+
+      function restartGame() {
+        cells = Array(SIZE)
+          .fill()
+          .map(() => Array(SIZE).fill(null));
+        currentPlayer = "x";
+        moveCount = 0;
+        restartBtn.style.display = "none";
+        createBoard();
+      }
+
+      function checkWin(row, col) {
+        const directions = [
+          [0, 1],
+          [1, 0],
+          [1, 1],
+          [1, -1],
+        ];
+
+        for (let [dx, dy] of directions) {
+          let count = 1;
+          let winCells = [[row, col]];
+
+          for (let step = 1; step < 5; step++) {
+            let r = row + dx * step;
+            let c = col + dy * step;
+            if (
+              r < 0 ||
+              r >= SIZE ||
+              c < 0 ||
+              c >= SIZE ||
+              cells[r][c] !== currentPlayer
+            )
+              break;
+            winCells.push([r, c]);
+            count++;
+          }
+          for (let step = 1; step < 5; step++) {
+            let r = row - dx * step;
+            let c = col - dy * step;
+            if (
+              r < 0 ||
+              r >= SIZE ||
+              c < 0 ||
+              c >= SIZE ||
+              cells[r][c] !== currentPlayer
+            )
+              break;
+            winCells.unshift([r, c]);
+            count++;
+          }
+          if (count >= 5) return winCells;
+        }
+        return null;
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        createBoard();
+      });
+    </script>
+  </body>
+</html>
